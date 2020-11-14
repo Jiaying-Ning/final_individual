@@ -6,6 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+#loading package
 library(tidyverse)
 library(readxl)
 library(janitor)
@@ -34,16 +35,19 @@ scale_fill_discrete =scale_fill_viridis_d
 
 
 ```{r}
+#import data for covid_impact_on_airport_traffic
+#Main Problem: join data, have date and state match for both data
+# Transportation and Covid have different way to representing date(2020-01-01 in transportation date and 01/01/2020 in Covid data)
 transportation = 
    read_csv("./data/covid_impact_on_airport_traffic.csv" ) %>%
   janitor::clean_names() %>%
-  filter(country != "Australia" & country != "Chile" & country != "Canada") %>%
-   separate(date, c("year","month","day"), sep = "([-])") %>%
-    mutate(date = paste(day,month,year,sep = "/")) %>%
-  relocate(date) %>%
-  select(-year,-month,-day,-version,-aggregation_method,-state,-country) %>%
-    rename(state = iso_3166_2) %>%
-  mutate(state=gsub("US-","",state))
+  filter(country != "Australia" & country != "Chile" & country != "Canada") %>% #only leave United States data 
+   separate(date, c("year","month","day"), sep = "([-])") %>%  # I re-arrange the date information so that it matched the date format in Covid data
+    mutate(date = paste(day,month,year,sep = "/")) %>% # I re-arrange the date information so that it matched the date format in Covid data
+  relocate(date) %>% 
+  select(-year,-month,-day,-version,-aggregation_method,-state,-country) %>% #delete variable that is not in our interest
+    rename(state = iso_3166_2) %>% #rename state variable so that we can combine two data 
+  mutate(state=gsub("US-","",state)) # reformat state variable, delete prefix of US-
 
 
 
@@ -52,9 +56,9 @@ transportation =
 Covid =  
   read_csv("./data/United_States_COVID-19_Cases_and_Deaths_by_State_over_Time.csv" ) %>%
   janitor::clean_names() %>%
-  filter(consent_cases == "Agree" | consent_deaths == "Agree")%>%
-  select("submission_date":"pnew_death") %>%
-    rename(date = submission_date) 
+  filter(consent_cases == "Agree" | consent_deaths == "Agree")%>% #need to decided whether this step is necessary
+  select("submission_date":"pnew_death") %>% #select variable of interest, need to look further into which variable we are interested in and way
+    rename(date = submission_date)  # rename date variable so that we can match data accordingly
   
 ```
 
@@ -62,8 +66,8 @@ Covid =
 ```{r}
 
 Covid_transport_data = 
-  left_join(transportation, Covid, by = c("date")) %>%
-  filter(state.y == state.x)
+  left_join(transportation, Covid, by = c("date")) %>% #left join two data, by date
+  filter(state.y == state.x) #filter the data so that we only leave the data that have matching date and state
   
 ```
 
