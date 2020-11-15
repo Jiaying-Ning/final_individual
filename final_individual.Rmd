@@ -12,7 +12,7 @@ library(readxl)
 library(janitor)
 library(dplyr)
 library(ggridges)
-
+library(usdata)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -34,6 +34,7 @@ scale_fill_discrete =scale_fill_viridis_d
 
 
 
+#### introducing first dataset "covid_impact_on_airport_traffic"
 ```{r}
 #import data for covid_impact_on_airport_traffic
 #Main Problem: join data, have date and state match for both data
@@ -43,7 +44,7 @@ transportation =
   janitor::clean_names() %>%
   filter(country != "Australia" & country != "Chile" & country != "Canada") %>% #only leave United States data 
    separate(date, c("year","month","day"), sep = "([-])") %>%  # I re-arrange the date information so that it matched the date format in Covid data
-    mutate(date = paste(day,month,year,sep = "/")) %>% # I re-arrange the date information so that it matched the date format in Covid data
+    mutate(date = paste(month,day,year,sep = "/")) %>% # I re-arrange the date information so that it matched the date format in Covid data
   relocate(date) %>% 
   select(-year,-month,-day,-version,-aggregation_method,-state,-country) %>% #delete variable that is not in our interest
     rename(state = iso_3166_2) %>% #rename state variable so that we can combine two data 
@@ -52,6 +53,8 @@ transportation =
 
 
 ```
+
+#### introducing first dataset "United_States_Covid-19_Cases_and_Deaths_by_State_over_Time"
 ```{r}
 Covid =  
   read_csv("./data/United_States_COVID-19_Cases_and_Deaths_by_State_over_Time.csv" ) %>%
@@ -62,12 +65,41 @@ Covid =
   
 ```
 
-
+#### Joining two dataset
 ```{r}
 
 Covid_transport_data = 
   left_join(transportation, Covid, by = c("date")) %>% #left join two data, by date
   filter(state.y == state.x) #filter the data so that we only leave the data that have matching date and state
   
+```
+
+
+#### Introducing a third dataset
+```{r}
+
+Mobility = 
+   read_csv("./data/2020_US_Region_Mobility_Report.csv" ) %>%
+  janitor::clean_names() %>%
+   separate(date, c("year","month","day"), sep = "([-])") %>%
+  mutate(
+    state = state2abbr(sub_region_1),
+  date = paste(month,day,year,sep = "/"))  %>%
+   select(-metro_area,-country_region_code,-day,-month,-year) 
+  
+```
+```{r}
+Covid_mobility_data = 
+  left_join(Mobility, Covid, by = c("state")) %>% #left join two data, by date
+  filter(date.y == date.x) %>%
+  select(-sub_region_1,-date.y,-country_region)
+```
+
+
+```{r}
+Covid_mobility_data = 
+  left_join( Covid, Mobility,by = c("state")) %>% #left join two data, by date
+  filter(date.y == date.x) %>%
+  select(-sub_region_1,-date.y,-country_region)
 ```
 
