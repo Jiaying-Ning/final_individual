@@ -17,6 +17,8 @@ library(usmap)
 library(ggplot2)
 library(patchwork)
 
+library(plotly)
+
 knitr::opts_chunk$set(
   fig.width = 6,
     fig.asp = .6,
@@ -167,12 +169,75 @@ Covid_mobility_data %>%
   group_by(date,state) %>%
    filter(!is.na(transit_stations_percent_change_from_baseline)) %>%
   summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
-            mean_newcases = mean(new_case),
+            sum_newcases = sum(new_case),
             n = n()) %>%
-  ggplot(aes(x = date,y = mean_newcases,color = state)) +
+  ggplot(aes(x = date,y = sum_newcases,color = state)) +
  geom_point(alpha=0.3) +
  scale_x_date(date_breaks = "1 month")
   
+```
+
+
+```{r}
+Covid_mobility_data %>%
+  group_by(date,state) %>%
+   filter(!is.na(transit_stations_percent_change_from_baseline) & new_case >0) %>%
+  summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
+            sum_newcases = sum(new_case),
+            n = n()) %>%
+  ggplot(aes(x = sum_newcases,y = mean_transit,color = state)) +
+ geom_point(alpha=0.3)
+
+```
+
+
+```{r}
+Covid_mobility_data %>%
+  group_by(date,state) %>%
+   filter(!is.na(transit_stations_percent_change_from_baseline) & new_case >0) %>%
+  summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
+            sum_tot_cases = sum(tot_cases),
+            n = n()) %>%
+  ggplot(aes(x = mean_transit,y = sum_tot_cases,color = state)) +
+ geom_point(alpha=0.3)
+
+```
+
+```{r}
+#use plotly to compare the mean transit among each state
+Covid_mobility_data %>%
+  group_by(state) %>%
+   filter(!is.na(transit_stations_percent_change_from_baseline) & new_case >0) %>%
+  summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
+            n = n()) %>%
+  mutate(state = fct_reorder(state, mean_transit)) %>% 
+   plot_ly(x = ~state, y = ~mean_transit, color = ~state, type = "bar", colors = "viridis")
+```
+
+```{r}
+#use plotly to compare the mean transit among each state
+Covid_mobility_data %>%
+  group_by(state) %>%
+   filter(!is.na(transit_stations_percent_change_from_baseline) & new_case >0) %>%
+  summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
+            sum_new_cases = sum(new_case),
+            n = n()) %>%
+  mutate(state = fct_reorder(state, sum_new_cases)) %>% 
+   plot_ly(x = ~state, y = ~sum_new_cases, color = ~state, type = "bar", colors = "viridis")
+```
+
+
+```{r}
+#use plotly to compare the mean transit among each state
+Covid_mobility_data %>%
+  group_by(state) %>%
+   filter(!is.na(transit_stations_percent_change_from_baseline) & new_case >0) %>%
+  summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
+            mean_new_cases = mean(new_case),
+            n = n()) %>%
+  mutate(state = fct_reorder(state, mean_new_cases)) %>% 
+   plot_ly(x = ~state, y = ~mean_new_cases, color = ~state, type = "bar", colors = "viridis")
+```
 ```
 
 ```{r}
