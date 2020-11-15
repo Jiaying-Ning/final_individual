@@ -85,21 +85,69 @@ Mobility =
   mutate(
     state = state2abbr(sub_region_1),
   date = paste(month,day,year,sep = "/"))  %>%
-   select(-metro_area,-country_region_code,-day,-month,-year) 
+   select(-metro_area,-country_region_code,-day,-month,-year) %>%
+  filter(!is.na(sub_region_1))
   
 ```
+
+
 ```{r}
-Covid_mobility_data = 
-  left_join(Mobility, Covid, by = c("state")) %>% #left join two data, by date
-  filter(date.y == date.x) %>%
-  select(-sub_region_1,-date.y,-country_region)
+Mobility_clean = 
+Mobility %>%
+  mutate(date = fct_inorder(date),
+         date = as.Date(date, "%m/%d/%y")) %>%
+  select(-iso_3166_2_code,-country_region,-census_fips_code,-sub_region_2,-sub_region_1) %>%
+  relocate(date,state) 
+```
+
+```{r}
+Covid_clean =
+Covid %>%
+  mutate(date = fct_inorder(date),
+         date = as.Date(date, "%m/%d/%y")) %>%
+  select(-conf_cases,-prob_cases,-pnew_case,-conf_death,-prob_death,-pnew_death)
+  
+```
+
+
+
+```{r}
+Covid_mobility_data=
+  left_join( Covid_clean,Mobility_clean, by = c("date")) %>% #left join two data, by date
+  filter(state.x==state.y) %>%
+  mutate(state=state.x) %>%
+  select(-state.x,-state.y)
+```
+
+
+
+
+```{r}
+
+#There seems to be multiple date for each date and state, try to take mean of it 
+Covid_mobility_data %>%
+  group_by(date,state) %>%
+   filter(!is.na(transit_stations_percent_change_from_baseline)) %>%
+  summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
+            mean_newcases = mean(new_case),
+            n = n()) 
+  
 ```
 
 
 ```{r}
-Covid_mobility_data = 
-  left_join( Covid, Mobility,by = c("state")) %>% #left join two data, by date
-  filter(date.y == date.x) %>%
-  select(-sub_region_1,-date.y,-country_region)
+
+#TRY to make plot about the relationship between mean_transit station percent change and date
+Covid_mobility_data %>%
+  group_by(date,state) %>%
+   filter(!is.na(transit_stations_percent_change_from_baseline)) %>%
+  summarise(mean_transit = mean(transit_stations_percent_change_from_baseline),
+            mean_newcases = mean(new_case),
+            n = n()) %>%
+  ggplot(aes(x = date,y = mean_transit,color = state)) +
+ geom_line(alpha=0.3) +
+ scale_x_date(date_breaks = "1 month")
+  
 ```
+
 
